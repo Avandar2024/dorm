@@ -190,17 +190,21 @@ if __name__ == "__main__":
         if category not in dataframes:
             dataframes[category] = {}
         dataframes[category][value] = group
+        
     # 进行处理
     all_dfs = []
     for category, sub_dict in dataframes.items():
         for value, sub_df in sub_dict.items():
             sub_df.set_index("身份码", inplace=True)
             sub_df.drop(columns=["住宿类", "性别"], inplace=True)
+
             # 进行编码和赋权
             encoding(sub_df)
             apply_weights(sub_df)
+
             # 使用更新的贪婪算法获取学生序列
             student_sequence_updated = greedy_sequence_updated(sub_df)
+            
             # 创建一个从学生身份码到其在DataFrame中的位置的映射
             index_to_position_map = {
                 index: position for position, index in enumerate(sub_df.index)
@@ -216,6 +220,7 @@ if __name__ == "__main__":
             # print(optimized_sequence[:10])  # 显示优化后的序列中的前10个学生
             result = {"住宿类": category, "性别": value, "身份码": optimized_sequence}
             all_dfs.append(pd.DataFrame(result))
+            
     final_df = pd.concat(all_dfs)
     final_df.to_excel("final_results.xlsx", index=True, engine="openpyxl")
 
