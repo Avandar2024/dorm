@@ -1,13 +1,13 @@
 # 导入必要的库
 from typing import cast
 
-from utils.decrators import static_var, WithStaticVar
-from algrithorm import simulated_annealing_updated
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import LabelEncoder
-from sklearn.manifold import locally_linear_embedding
+
+from algrithorm import simulated_annealing_updated
+from utils.decrators import WithStaticVar, static_var
 
 """住宿类
     性别
@@ -38,133 +38,130 @@ from sklearn.manifold import locally_linear_embedding
 
 
 def apply_weights(df):
-    # 根据22级数据进行赋权
-    """作息: 0.441099
-    卫生习惯: 0.200818
-    噪音: 0.166033
-    烟味: 0.129494
-    空调: 0.032154
-    消费: 0.030400"""
-    weights = [0.441099, 0.200818, 0.166033, 0.129494, 0.032154, 0.030400]
-    for index, col_name in enumerate(df.columns):
-        df[col_name] *= 100
-        if index <= 8:
-            df[col_name] *= weights[0]
-        elif index <= 11 or index == 20 or index == 21:
-            df[col_name] *= weights[2]
-        elif index <= 14:
-            df[col_name] *= weights[4]
-        elif index <= 18 or index == 22:
-            df[col_name] *= weights[1]
-        elif index == 19:
-            df[col_name] *= weights[3]
-        else:
-            df[col_name] *= weights[5]
-    return df
+	# 根据22级数据进行赋权
+	"""作息: 0.441099
+	卫生习惯: 0.200818
+	噪音: 0.166033
+	烟味: 0.129494
+	空调: 0.032154
+	消费: 0.030400"""
+	weights = [0.441099, 0.200818, 0.166033, 0.129494, 0.032154, 0.030400]
+	for index, col_name in enumerate(df.columns):
+		df[col_name] *= 100
+		if index <= 8:
+			df[col_name] *= weights[0]
+		elif index <= 11 or index == 20 or index == 21:
+			df[col_name] *= weights[2]
+		elif index <= 14:
+			df[col_name] *= weights[4]
+		elif index <= 18 or index == 22:
+			df[col_name] *= weights[1]
+		elif index == 19:
+			df[col_name] *= weights[3]
+		else:
+			df[col_name] *= weights[5]
+	return df
 
 
 def encoding(df):
-    # 对其它列使用Label-Encoder进行简单编码
-    label_encoders = {}
-    for col in df.columns[1:]:
-        le = LabelEncoder()
-        df[col] = le.fit_transform(df[col].astype(str))
-        label_encoders[col] = le
-    df = df.astype(float)
-    return df
+	# 对其它列使用Label-Encoder进行简单编码
+	label_encoders = {}
+	for col in df.columns[1:]:
+		le = LabelEncoder()
+		df[col] = le.fit_transform(df[col].astype(str))
+		label_encoders[col] = le
+	df = df.astype(float)
+	return df
 
 
 def confidence_level():
-    """计算置信度"""
-    pass
+	"""计算置信度"""
+	pass
 
 
 @static_var(value=None)
 def dist_matrix(df: pd.DataFrame) -> np.ndarray:
-    """计算距离矩阵，使用静态缓存"""
+	"""计算距离矩阵，使用静态缓存"""
 
-    dist_matrix_proxy = cast(WithStaticVar, dist_matrix)
+	dist_matrix_proxy = cast(WithStaticVar, dist_matrix)
 
-    if dist_matrix_proxy.value is None:
-        print("首次计算距离矩阵...")
-        dist_matrix_proxy.value = pairwise_distances(df.to_numpy(), metric="euclidean")
+	if dist_matrix_proxy.value is None:
+		print('首次计算距离矩阵...')
+		dist_matrix_proxy.value = pairwise_distances(df.to_numpy(), metric='euclidean')
 
-    return dist_matrix_proxy.value
+	return dist_matrix_proxy.value
 
 
 def greedy_sequence_updated(df: pd.DataFrame):
-    """贪婪算法获取学生序列"""
-    # 以第一个学生为起点
-    current_index = 0
-    num_students = df.shape[0]
-    sequence = [df.index[current_index]]
-    used_indices = {current_index}
+	"""贪婪算法获取学生序列"""
+	# 以第一个学生为起点
+	current_index = 0
+	num_students = df.shape[0]
+	sequence = [df.index[current_index]]
+	used_indices = {current_index}
 
-    while len(sequence) < num_students:
-        min_distance = float("inf")
-        next_index = None
-        for i in range(num_students):
-            # 检查未使用的学生
-            if i not in used_indices:
-                if dist_matrix(df)[current_index][i] < min_distance:
-                    min_distance = dist_matrix(df)[current_index][i]
-                    next_index = i
+	while len(sequence) < num_students:
+		min_distance = float('inf')
+		next_index = None
+		for i in range(num_students):
+			# 检查未使用的学生
+			if i not in used_indices and dist_matrix(df)[current_index][i] < min_distance:
+					min_distance = dist_matrix(df)[current_index][i]
+					next_index = i
 
-        sequence.append(df.index[next_index])  # type: ignore
-        used_indices.add(next_index)  # type: ignore
-        current_index = next_index
+		sequence.append(df.index[next_index])  # type: ignore
+		used_indices.add(next_index)  # type: ignore
+		current_index = next_index
 
-    return sequence
+	return sequence
 
 
-if __name__ == "__main__":
-    # 读取和处理Excel文件
-    df = pd.read_excel("0814导出-加密_Sheet1_1.xlsx", sheet_name=0)
-    # 对第一列进行多选编码
-    col1 = df.columns[3]
-    options = ["早上六点及以前", "早上六点到七点", "早上七点及以后"]
-    for option in options:
-        df.insert(4, option, df[col1].str.contains(option).astype(int))
-    df.drop(columns=col1, inplace=True)
-    # print(df.head())
+if __name__ == '__main__':
+	# 读取和处理Excel文件
+	df = pd.read_excel('0814导出-加密_Sheet1_1.xlsx', sheet_name=0)
+	# 对第一列进行多选编码
+	col1 = df.columns[3]
+	options = ['早上六点及以前', '早上六点到七点', '早上七点及以后']
+	for option in options:
+		df.insert(4, option, df[col1].str.contains(option).astype(int))
+	df.drop(columns=col1, inplace=True)
+	# print(df.head())
 
-    # 根据性别、专业列的值划分为多个子DataFrame
-    grouped = df.groupby(["住宿类", "性别"])
-    dataframes = {}
-    for (category, value), group in grouped:
-        if category not in dataframes:
-            dataframes[category] = {}
-        dataframes[category][value] = group
+	# 根据性别、专业列的值划分为多个子DataFrame
+	grouped = df.groupby(['住宿类', '性别'])
+	dataframes = {}
+	for (category, value), group in grouped:
+		if category not in dataframes:
+			dataframes[category] = {}
+		dataframes[category][value] = group
 
-    # 进行处理
-    all_dfs = []
-    for category, sub_dict in dataframes.items():
-        for value, sub_df in sub_dict.items():
-            sub_df.set_index("身份码", inplace=True)
-            sub_df.drop(columns=["住宿类", "性别"], inplace=True)
+	# 进行处理
+	all_dfs = []
+	for category, sub_dict in dataframes.items():
+		for value, sub_df in sub_dict.items():
+			sub_df.set_index('身份码', inplace=True)
+			sub_df.drop(columns=['住宿类', '性别'], inplace=True)
 
-            # 进行编码和赋权
-            encoding(sub_df)
-            apply_weights(sub_df)
+			# 进行编码和赋权
+			encoding(sub_df)
+			apply_weights(sub_df)
 
-            # 使用更新的贪婪算法获取学生序列
-            student_sequence_updated = greedy_sequence_updated(sub_df)
+			# 使用更新的贪婪算法获取学生序列
+			student_sequence_updated = greedy_sequence_updated(sub_df)
 
-            # 创建一个从学生身份码到其在DataFrame中的位置的映射
-            index_to_position_map = {
-                index: position for position, index in enumerate(sub_df.index)
-            }
+			# 创建一个从学生身份码到其在DataFrame中的位置的映射
+			index_to_position_map = {index: position for position, index in enumerate(sub_df.index)}
 
-            # 使用模拟退火算法优化学生序列
-            optimized_sequence = simulated_annealing_updated(
-                dist_matrix(sub_df),
-                student_sequence_updated,
-                index_to_position_map,
-            )
+			# 使用模拟退火算法优化学生序列
+			optimized_sequence = simulated_annealing_updated(
+				dist_matrix(sub_df),
+				student_sequence_updated,
+				index_to_position_map,
+			)
 
-            # print(optimized_sequence[:10])  # 显示优化后的序列中的前10个学生
-            result = {"住宿类": category, "性别": value, "身份码": optimized_sequence}
-            all_dfs.append(pd.DataFrame(result))
+			# print(optimized_sequence[:10])  # 显示优化后的序列中的前10个学生
+			result = {'住宿类': category, '性别': value, '身份码': optimized_sequence}
+			all_dfs.append(pd.DataFrame(result))
 
-    final_df = pd.concat(all_dfs)
-    final_df.to_excel("final_results.xlsx", index=True, engine="openpyxl")
+	final_df = pd.concat(all_dfs)
+	final_df.to_excel('final_results.xlsx', index=True, engine='openpyxl')
