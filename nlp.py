@@ -1,26 +1,30 @@
-from sklearn.manifold import locally_linear_embedding as lle
+import json
+import numpy as np
 
-from utils.types import feature
+
+def confidence_level() -> float:
+    """计算置信度"""
+    return 0.95
 
 
 def preprocess():
-	"""利用LLE进行数据降维"""
-	pass
+    """利用LLE进行数据降维"""
+    pass
 
 
-def group() -> list[feature]:
-	"""使用k-means聚类"""
-	pass
+def group():
+    """使用k-means聚类"""
+    pass
 
 
-def llm_process():
-	"""使用LLM对数据进行分类"""
-	pass
+def llm_process() -> str:
+    """使用LLM对数据进行分类"""
+    return ''
 
 
-def normalize():
-	pass
-
-
-def nlp():
-	pass
+def extract_json(raw: str = llm_process()) -> np.ndarray:
+    """解析llm的输出"""
+    group_info:dict = json.loads(raw)
+    g = nx.DiGraph(group_info)
+    
+    return np.ndarray(1)
