@@ -1,7 +1,7 @@
+import asyncio
 import json
 import tomllib
 from collections.abc import Generator
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from itertools import cycle
 
@@ -67,7 +67,7 @@ def process_chunk(chunk: dict, client: OpenAI) -> dict:
                 raise ValueError(f'Invalid key in LLM response: {key}')
             if not all(is_int(item) for item in value):
                 raise ValueError(f'Invalid value in LLM response: {value}')
-        return json.loads(json_output)  # type: ignore
+        return json.loads(json_output)
     except Exception as e:
         print(f'Error processing chunk: {e}')
         raise
@@ -77,7 +77,7 @@ def process_chunk(chunk: dict, client: OpenAI) -> dict:
     stop=tenacity.stop_after_attempt(5),
     wait=tenacity.wait_exponential(multiplier=1, min=4, max=10),
 )
-def llm_process(data: dict) -> dict:
+async def llm_process(data: dict) -> dict:
     """使用LLM对数据进行分类，使用并发和客户端轮换"""
     print(f'Processing data with {len(data)} entries using LLM...')
     chunks = list(chunk_dict(data, chunk_size=100))
@@ -92,32 +92,25 @@ def llm_process(data: dict) -> dict:
 
     # 创建工作队列
     tasks = []
-    with ThreadPoolExecutor(max_workers=min(len(clients), 5)) as executor:
-        # 提交所有任务，每个任务使用下一个可用的客户端
-        for chunk in chunks:
-            client = next(client_cycle)  # 轮换获取下一个客户端
-            task = executor.submit(process_chunk, chunk, client)
-            tasks.append(task)
+    for chunk in chunks:
+      client = next(client_cycle)
+      task = process_chunk(chunk, client)
+      tasks.append(task)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # 收集结果
-        results = {}
-        for future in as_completed(tasks):
-            try:
-                chunk_result = future.result()
-                # print(f'Chunk processed successfully: {chunk_result}')
-                results.update(chunk_result)
-            except Exception as e:
-                print(f'Task failed with error: {e}')
-
-    # 检查结果是否为空
-    if not results:
-        raise ValueError('All LLM requests failed or returned empty responses')
+    finals:dict = {}
+    # 处理结果
+    for result in results:
+      if isinstance(result, dict):
+        finals.update(result)
+      else:
+        print(f'Error in result: {result}')
 
     # 保存结果到文件
     with open('output.json', 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
-    return results
+    return finals
 
 
 def community_sort(g: Graph, communities: list) -> Partition:
@@ -156,7 +149,7 @@ def append_ai_col(dst: pd.DataFrame):
     """给DataFrame添加ai列"""
     ai_col: pd.Series = dst.iloc[:, -1]  # ai列是最后一列
     dst.drop(columns=dst.columns[-1], inplace=True)
-    group: dict = llm_process(ai_col.to_dict())
+    group: dict = asyncio.run(llm_process(ai_col.to_dict()))
     # 解析JSON字符串
     df = community_find(group)
     # 将结果添加到原DataFrame中

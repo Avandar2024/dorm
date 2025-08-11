@@ -3,47 +3,42 @@ import json
 from openai.types.chat import ChatCompletionMessageParam
 
 
-def prompts_message(data:dict) -> list[ChatCompletionMessageParam]:
+def prompts_message(data: dict) -> list[ChatCompletionMessageParam]:
     """
-    Generate optimized system and user prompts for roommate matching analysis.
-
+    生成用于宿舍匹配分析的 system 和 user prompt。
+    Args:
+      data (dict): 学生自述信息字典。
     Returns:
-        tuple: (system_prompt, user_prompt) - A tuple containing the system prompt and user prompt.
+      list[ChatCompletionMessageParam]: 包含 system 和 user prompt 的消息列表。
     """
     max_recommendations = 5
 
-    system_prompt = """
-The user will provide some exam text. Please parse the "question" and "answer" and output them in JSON format. 
-
-EXAMPLE INPUT: 
-{
-  "1804": "同学间能有共同的兴趣爱好与奋斗目标，保持较轻松愉悦的学习与休闲氛围",
-  "1805": "大家和睦相处，能成为好友，有共同话题，聊天不会尴尬，一起求学",
-  "1806": "舍友之间互相帮助团结友爱，能促进学习一起进步，也能一起玩一起组织活动，作息规律健康生活",
-  "1807": "(空)",
-  "1808": "大家是互相包容，共同进步，关系亲密的好朋友",
-  "1809": "交流学习，适当（可以共同）娱乐",
-  "1810": "舍友间相互理解尊重 和谐共处 维持个人空间 有学习的劲头",
-}
-
-EXAMPLE JSON OUTPUT:
-{
-    ...
-    "1807":[],
-    "1808": [
-    1805,
-    1809,
-    ...
-  ],
-  ...
-}
-"""
+    system_prompt = (
+        "The user will provide some exam text. Please parse the 'question' and 'answer' and output them in JSON format.\n\n"
+        'EXAMPLE INPUT: \n'
+        '{\n'
+        "  '1804': '同学间能有共同的兴趣爱好与奋斗目标，保持较轻松愉悦的学习与休闲氛围',\n"
+        "  '1805': '大家和睦相处，能成为好友，有共同话题，聊天不会尴尬，一起求学',\n"
+        "  '1806': '舍友之间互相帮助团结友爱，能促进学习一起进步，也能一起玩一起组织活动，作息规律健康生活',\n"
+        "  '1807': '(空)',\n"
+        "  '1808': '大家是互相包容，共同进步，关系亲密的好朋友',\n"
+        "  '1809': '交流学习，适当（可以共同）娱乐',\n"
+        "  '1810': '舍友间相互理解尊重 和谐共处 维持个人空间 有学习的劲头',\n"
+        '}\n\n'
+        'EXAMPLE JSON OUTPUT:\n'
+        '{\n'
+        '  ...\n'
+        "  '1807': [],\n"
+        "  '1808': [1805, 1809, ...],\n"
+        '  ...\n'
+        '}'
+    )
 
     user_prompt_prefix = (
         'You are a professional human behavior and personality analyst specializing in roommate compatibility. '
         'Your expertise includes analyzing self-descriptions (both tone and content) to identify personality traits, '
         'living habits, and social preferences. Your primary task is to evaluate compatibility between individuals '
-        'as potential roommates based on these insights.'
+        'as potential roommates based on these insights. '
         'Below are self-descriptions from several students about their ideal dorm living situation. '
         'Please complete the following tasks:\n\n'
         '1. **Comprehensive Analysis:**\n'
@@ -72,8 +67,10 @@ EXAMPLE JSON OUTPUT:
         '   - When preferences conflict, prioritize sleep schedule compatibility\n'
         '   - For students with unique requirements, focus on complementary rather than identical matches'
     )
-    
+
     user_prompt = user_prompt_prefix + '\n\n' + json.dumps(data, ensure_ascii=False, indent=2)
 
-    return [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}]
-
+    return [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_prompt},
+    ]
