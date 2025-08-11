@@ -8,6 +8,8 @@ wheels/
 .ruff_cache/
 *.xlsx
 *.csv
+*.json
+api_key.toml
 
 # Virtual environments
 .venv

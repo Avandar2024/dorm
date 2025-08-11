@@ -7,6 +7,12 @@ import numpy as np
 import pandas as pd
 
 
+def num_in_title(title: str) -> int:
+    """从标题中提取数字"""
+    num = ''.join(filter(str.isdigit, title))
+    return int(num) if num else 0
+
+
 @dataclass
 class col_wrapper:
     max_value: int = 0
@@ -16,11 +22,9 @@ class col_wrapper:
     def random_fill(self):
         """随机填充DataFrame中的空值"""
         if self.src_df is None or self.col not in self.src_df.columns:
-            raise ValueError("DataFrame or column is not properly initialized.")
-        self.src_df[self.col] = (
-          self.src_df[self.col].fillna(
-          np.random.randint(0, self.max_value + 1)
-          )
+            raise ValueError('DataFrame or column is not properly initialized.')
+        self.src_df[self.col] = self.src_df[self.col].fillna(
+            np.random.randint(0, self.max_value + 1),
         )
 
 
@@ -33,21 +37,28 @@ def ai_weight() -> float:
     return level
 
 
-def apply_weights(df):
+def apply_weights(df: pd.DataFrame):
     # 根据22级数据进行赋权
-    """作息: 0.441099
+    """
+    作息: 0.441099
     卫生习惯: 0.200818
     噪音: 0.166033
     烟味: 0.129494
     空调: 0.032154
-    消费: 0.030400"""
+    """
     weights = [0.441099, 0.200818, 0.166033, 0.129494, 0.032154]
     weights = [i * (1 - ai_weight()) for i in weights]
     weights.append(ai_weight())
-    for index, col_name in enumerate(df.columns):
+    for col_name in df.columns:
         col_name: str
-        
-        df[col_name] *= 100
+        if not pd.api.types.is_numeric_dtype(df[col_name]):
+            print(f'Skipping non-numeric column: {col_name}')
+            print(f'Column content: {df[col_name].head()}')
+            continue
+        # 归一化
+        df[col_name] = (df[col_name] - 1) / (df[col_name].max() - 1)
+        df[col_name] = (df[col_name] * 100).astype(float)
+        index = num_in_title(col_name)
         if index <= 8:
             df[col_name] *= weights[0]
         elif index <= 11 or index == 20 or index == 21:
@@ -58,7 +69,7 @@ def apply_weights(df):
             df[col_name] *= weights[1]
         elif index == 19:
             df[col_name] *= weights[3]
-        elif col_name.startswith('ai_'):
+        elif index == 26:
             df[col_name] *= weights[5]
     return df
 
@@ -119,17 +130,11 @@ def simulated_annealing_updated(
 
 def random_fill(df: pd.DataFrame):
     """随机填充DataFrame中的空值"""
-    max_values = {
-        3: list(range(1, 8)) + [12, 13, 14, 22, 23],  # 3个选项的
-        5: [10],  # 5个选项的
-    }
-    for i in range(1, 24):
-        col = df.columns[i+3]
-        if i in max_values[3]:
-            max_value = 3
-        elif i in max_values[5]:
-            max_value = 5
-        else:
-            max_value = 4
-        col_wrapper_instance = col_wrapper(max_value=max_value, col=col, src_df=df)
-        col_wrapper_instance.random_fill()
+    for col in df.columns:
+        if not pd.api.types.is_numeric_dtype(df[col]):
+            continue
+        max_value = df[col].max(skipna=True)
+        if pd.isna(max_value):
+            print(f'Column {col} has no valid max value, skipping.')
+            print(f'Column content: {df[col].head()}')
+        col_wrapper(max_value, col, df).random_fill()

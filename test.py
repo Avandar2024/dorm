@@ -1,9 +1,12 @@
-import pandas as pd
+import os
+from openai import OpenAI
 
-# 创建一个示例 DataFrame
-data = {'A': ['apple', 'orange', 'apple', 'banana'],
-        'B': [1, 2, 3, 4]}
-df = pd.DataFrame(data)
-col = df.iloc[:, -1]  # 获取第一列
-df.drop(columns=df.columns[-1], inplace=True)  # 删除第一列
-print(df)
+
+
+def num_in_title(title: str) -> int:
+    """从标题中提取数字"""
+    num = ''.join(filter(str.isdigit, title))
+    return int(num) if num else 0
+
+if __name__ == '__main__':
+  print(f'{num_in_title('1、如果第一节课程时间在九点及以后，您可以接受的舍友起床时间为:')}')

@@ -16,12 +16,26 @@ def prompts_message(data:dict) -> list[ChatCompletionMessageParam]:
 The user will provide some exam text. Please parse the "question" and "answer" and output them in JSON format. 
 
 EXAMPLE INPUT: 
-Which is the highest mountain in the world? Mount Everest.
+{
+  "1804": "同学间能有共同的兴趣爱好与奋斗目标，保持较轻松愉悦的学习与休闲氛围",
+  "1805": "大家和睦相处，能成为好友，有共同话题，聊天不会尴尬，一起求学",
+  "1806": "舍友之间互相帮助团结友爱，能促进学习一起进步，也能一起玩一起组织活动，作息规律健康生活",
+  "1807": "(空)",
+  "1808": "大家是互相包容，共同进步，关系亲密的好朋友",
+  "1809": "交流学习，适当（可以共同）娱乐",
+  "1810": "舍友间相互理解尊重 和谐共处 维持个人空间 有学习的劲头",
+}
 
 EXAMPLE JSON OUTPUT:
 {
-    "question": "Which is the highest mountain in the world?",
-    "answer": "Mount Everest"
+    ...
+    "1807":[],
+    "1808": [
+    1805,
+    1809,
+    ...
+  ],
+  ...
 }
 """
 
@@ -63,23 +77,3 @@ EXAMPLE JSON OUTPUT:
 
     return [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}]
 
-
-def review_messages(data: dict) -> list[ChatCompletionMessageParam]:
-    """
-    Generate messages for content review.
-
-    Args:
-        data (dict): The data to be reviewed.
-
-    Returns:
-        list[ChatCompletionMessageParam]: A list of messages for content review.
-    """
-    system_prompt = """
-      You are a content reviewer. Please review the following data.
-      delete what you think is not suitable.
-      and output the result in JSON format as the same format as the input.
-      If you think the data is suitable, just return the input data.
-      """
-    user_prompt = json.dumps(data, ensure_ascii=False, indent=2)
-
-    return [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}]
